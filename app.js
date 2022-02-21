@@ -11,7 +11,7 @@ app.use(json())
 
 
 app.post('/pool', async (req, res) => {
-
+    try{ 
     const pool = req.body;
     const mongoClient = new MongoClient(process.env.MONGO_URI);
     await mongoClient.connect()
@@ -20,21 +20,49 @@ app.post('/pool', async (req, res) => {
 
     let expire = pool.expireAt;
 
-    if (pool.title == "")
+    if (!pool.title)
     {
         return res.sendStatus(422);
     }
 
-    if (expire == "")
+    if (!expire)
     {
-        expire = dayjs().add(30, 'day');
+        expire = dayjs().add(30, 'day').format('YYYY-MM-DD HH:mm');
+        console.log(expire);
     }
 
     await poolCollection.insertOne({title: pool.title, expireAt: expire});
 
     mongoClient.close();
     res.sendStatus(201);
+    }
+    catch (error)
+    {
+        console.log(error)
+        res.sendStatus(500);
+    }
 })
+
+
+app.get('/pool', async (req, res) => {
+    try {
+
+    const mongoClient = new MongoClient(process.env.MONGO_URI);
+    await mongoClient.connect() ;
+
+    const poolCollection = mongoClient.db("drivencracy").collection("pool");
+    const pool = await poolCollection.find({}).toArray();
+
+    mongoClient.close();
+    res.send(pool);
+
+    }
+    catch (error) {
+        console.log(error)
+        res.sendStatus(500);
+    }
+})
+
 
 app.listen(5000, () => {
     console.log("Listening on 5000")
